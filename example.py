@@ -12,15 +12,16 @@ import pygame
 from pygame.locals import *
 
 # Window dimensions
-WINDOWWIDTH = 550
-WINDOWHEIGHT = 400
+WINDOW_WIDTH = 550
+WINDOW_HEIGHT = 400
 
-# Game board colors
-WHITE = 255, 255, 255
-GREEN = 0, 255, 0
-BLUE = 0, 0, 255
-BLACK = 0, 0, 0
+# Game board color
+#
+# NOTE: The only color the board
+# buttons can turn is red.
 RED = 255, 0, 0
+BLACK = 0, 0, 0
+FILL_COLOR = RED
 
 # Key syntactic sugars
 KEY_W = 0
@@ -39,24 +40,24 @@ CHAR_X = None
 CHAR_Y = None
 SURFACE = None
 TIMEOUT = None
-DISP_COUNTER = None
+GAME_COUNTER = None
 SCREEN_BUFFER = None
 
 
 def main():
-    global CHAR_X, CHAR_Y, DISP_COUNTER, KEYS, SCREEN_BUFFER, SURFACE, TIMEOUT
+    global CHAR_X, CHAR_Y, GAME_COUNTER, KEYS, SCREEN_BUFFER, SURFACE, TIMEOUT
 
     pygame.init()
 
     title = "Pygame Keyboard Test"
-    SURFACE = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+    SURFACE = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
     pygame.display.set_caption(title)
     pygame.mouse.set_visible(False)
 
     # The display counter used for setting how often
     # we update the screen buffer.
-    DISP_COUNTER = 0
+    GAME_COUNTER = 0
 
     # The screen is a 7x5 array and is the only item
     # that should be modified during your game.
@@ -109,14 +110,13 @@ def draw_screen():
 
     for x in range(7):
         for y in range(5):
-            color = RED
             radius = 30
             pos = 50 + 75*x, 350 - 75*y
 
             if SCREEN_BUFFER[x][y] == 0:  # unfilled
-                pygame.draw.circle(SURFACE, color, pos, radius, 3)
+                pygame.draw.circle(SURFACE, FILL_COLOR, pos, radius, 3)
             else:  # filled
-                pygame.draw.circle(SURFACE, color, pos, radius, 0)
+                pygame.draw.circle(SURFACE, FILL_COLOR, pos, radius, 0)
 
 
 def update_keys(new_keys):
@@ -142,7 +142,7 @@ def update_simulator():
     Update the simulator, including the display and keys pressed.
     """
 
-    global DISP_COUNTER
+    global GAME_COUNTER
 
     for event in pygame.event.get():
         if event.type == QUIT:
@@ -156,12 +156,12 @@ def update_simulator():
     keys = pygame.key.get_pressed()
     update_keys(keys)
 
-    if DISP_COUNTER >= 20:
+    if GAME_COUNTER >= 20:
         draw_screen()
         pygame.display.flip()
-        DISP_COUNTER = 0
+        GAME_COUNTER = 0
     else:
-        DISP_COUNTER += 1
+        GAME_COUNTER += 1
 
     SURFACE.fill(BLACK)
     time.sleep(0.001)
