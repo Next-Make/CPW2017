@@ -40,10 +40,11 @@ GAME_COUNTER = None
 SCREEN_BUFFER = None
 
 # Game state variables
+CONFIG = 0
 DISPLAY = 1
 AWAITING = 2
 
-GAME_STATE = DISPLAY
+GAME_STATE = CONFIG
 
 # Boarder square locations
 BOARDER = [(0, 2), (1, 2), (2, 2), (3, 0), (3, 1), (3, 2),
@@ -70,11 +71,45 @@ LOC_SQUARE_DICT = {
     BOTTOM_RIGHT: BOTTOM_RIGHT_SQUARES,
 }
 
-KEY_LOC_DICT = {
+# Dictionary mapping which keys map to
+# which rectangles depending on direction.
+KEY_LOC_DICT = {}
+
+LEFT_KEY_LOC_DICT = {
     pygame.K_w: TOP_LEFT,
     pygame.K_d: TOP_RIGHT,
     pygame.K_a: BOTTOM_LEFT,
     pygame.K_s: BOTTOM_RIGHT
+}
+
+RIGHT_KEY_LOC_DICT = {
+    pygame.K_UP: TOP_LEFT,
+    pygame.K_RIGHT: TOP_RIGHT,
+    pygame.K_LEFT: BOTTOM_LEFT,
+    pygame.K_DOWN: BOTTOM_RIGHT
+}
+
+# Dictionary mapping which keys map to
+# which forms of game reset during game.
+#
+# A full reset means we reset the user
+# configuration, whereas a partial reset
+# means we retain the configuration and
+# start generating the memory sequence
+# immediately after the reset.
+RESET_FULL = "FULL"
+RESET_PART = "PARTIAL"
+
+RESET_LOC_DICT = {}
+
+LEFT_RESET_LOC_DICT = {
+    pygame.K_w: RESET_PART,
+    pygame.K_s: RESET_FULL
+}
+
+RIGHT_RESET_LOC_DICT = {
+    pygame.K_UP: RESET_PART,
+    pygame.K_DOWN: RESET_FULL
 }
 
 # Squares indicating correct or wrong for a sequence
@@ -125,10 +160,38 @@ def main():
     KEYS = [0, 0, 0, 0, 0, 0, 0, 0]
 
     while True:
-        if GAME_STATE == DISPLAY:
+        if GAME_STATE == CONFIG:
+            await_configuration()
+        elif GAME_STATE == DISPLAY:
             generate_sequence()
         elif GAME_STATE == AWAITING:
             await_sequence()
+
+
+def await_configuration():
+    """
+    Wait for the user to decide which hand to use before starting.
+    """
+
+    global GAME_STATE, KEY_LOC_DICT, RESET_LOC_DICT
+
+    fill_boarder()
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                pygame.display.quit()
+                sys.exit(0)
+            elif event.key in LEFT_KEY_LOC_DICT:
+                GAME_STATE = DISPLAY
+                KEY_LOC_DICT = LEFT_KEY_LOC_DICT.copy()
+                RESET_LOC_DICT = RIGHT_RESET_LOC_DICT.copy()
+            elif event.key in RIGHT_KEY_LOC_DICT:
+                GAME_STATE = DISPLAY
+                KEY_LOC_DICT = RIGHT_KEY_LOC_DICT.copy()
+                RESET_LOC_DICT = LEFT_RESET_LOC_DICT.copy()
 
 
 def clear_buffer():
@@ -197,9 +260,17 @@ def await_sequence():
             if event.key == pygame.K_ESCAPE:
                 pygame.display.quit()
                 sys.exit(0)
-            elif event.key in (pygame.K_w, pygame.K_a,
-                               pygame.K_s, pygame.K_d):
+            elif event.key in KEY_LOC_DICT:
                 user_rect = KEY_LOC_DICT[event.key]
+            elif event.key in RESET_LOC_DICT:
+                reset_type = RESET_LOC_DICT[event.key]
+
+                reset_game()
+
+                if reset_type == RESET_PART:
+                    GAME_STATE = DISPLAY
+
+                return
 
     if user_rect is not None:
         squares = LOC_SQUARE_DICT[user_rect]
@@ -250,7 +321,6 @@ def signal_wrong():
     Signal the user has chosen the wrong next element.
     """
 
-    global GAME_STATE, INDEX, SEQUENCE
     clear_buffer()
 
     for x, y in WRONG_SQUARES:
@@ -269,10 +339,7 @@ def signal_wrong():
     while counter < 10000000:
         counter += 1
 
-    # Reset everything for a new game
-    GAME_STATE = DISPLAY
-    SEQUENCE = []
-    INDEX = 0
+    reset_game()
 
 
 def generate_sequence():
@@ -311,6 +378,18 @@ def generate_sequence():
         counter += 1
 
     GAME_STATE = AWAITING
+
+
+def reset_game():
+    """
+    Reset the game state for a fresh game.
+    """
+
+    global GAME_STATE, INDEX, SEQUENCE
+
+    GAME_STATE = CONFIG
+    SEQUENCE = []
+    INDEX = 0
 
 
 if __name__ == "__main__":
