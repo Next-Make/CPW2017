@@ -8,3 +8,9 @@
 # Python files
 *.pyc
 __pycache__
+
+# C files
+*.o
+*.elf
+*.hex
+*.lst
