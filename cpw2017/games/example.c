@@ -6,6 +6,35 @@
  * This code contains a lot of useful functions that you can use
  * for coming up with ideas for your own games, such as how you
  * move characters around.
+ *
+ * Some important information regarding implementation:
+ *
+ * 1) The only method you should be modifying is buttonTest().
+ *    The code is written specifically to work with the board as is.
+ *    Attempts to mess with any of the other functions could throw off
+ *    the hardware and lead to unexpected results.
+ *
+ * 2) Alternatively, you can implement your method (with a different
+ *    name instead of buttonTest). However, make sure that you do not
+ *    call any methods like "write_LEDs", "getButtons", or "_delay_ms."
+ *
+ *    If you need to implement some kind of delay in your method, you
+ *    can create variables that act as counters in which you exit immediately
+ *    out of your function if your counter doesn't reach a certain number:
+ *
+ *    int COUNTER = 0;
+ *
+ *    void your_function() {
+ *        COUNTER++;
+ *
+ *        if (COUNTER < 1000) {
+ *            // Or some other cutoff value
+ *            return;
+ *        }
+ *
+ *        COUNTER = 0;  // reset and continue...
+ *        <your code here continues>
+ *    }
  */
 
 #include <avr/io.h>
