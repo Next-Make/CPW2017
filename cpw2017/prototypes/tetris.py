@@ -1,5 +1,10 @@
 """
-Tetris (kinda).
+A miniature version of Tetris, with 3- and 4-blocks.
+
+Move and rotate falling blocks to form lines and clear the board!
+Game over if the screen fills up.
+
+The game speeds up over time, see how long you can last!
 """
 
 import sys
@@ -36,28 +41,34 @@ KEY_RIGHT = 7
 
 # Game global variables
 KEYS = None
-START_X = None
-START_Y = None
 SURFACE = None
 MOVE_TIMEOUT = None
 DROP_TIMEOUT = None
+DROP_INTERVAL = None
+DROP_SPEEDUP_TIMEOUT = None
 GAME_COUNTER = None
 SCREEN_BUFFER = None
 PIXELS = None
-PIECES = None
 INDEX = None
 CURRENT_PIECE = None
+CURRENT_PIECE_TYPE = None
+CURRENT_ORIENTATION = None
+GAMEOVER = None
 
 # Tetris pieces
 LPIECE = [[0, 0], [0, -1], [1, 0]]
 IPIECE = [[0, 0], [1, 0], [-1, 0]]
 SPIECE = [[0, 0], [0, -1], [1, 0], [1, -1]]
 
-GAMEOVER = None
+# Starting position for pieces
+START_X = 2
+START_Y = 6
 
+# List to keep track of objects and their positions
+PIECES = [['L', LPIECE], ['I', IPIECE], ['L', LPIECE], ['S', SPIECE], ['L', LPIECE], ['L', LPIECE], ['I', IPIECE]]
 
 def main():
-    global GAME_COUNTER, KEYS, SCREEN_BUFFER, SURFACE, PIXELS, MOVE_TIMEOUT, DROP_TIMEOUT, START_X, START_Y, PIECES, INDEX, CURRENT_PIECE
+    global GAME_COUNTER, KEYS, SCREEN_BUFFER, SURFACE, PIXELS, MOVE_TIMEOUT, DROP_TIMEOUT, DROP_INTERVAL, DROP_SPEEDUP_TIMEOUT, PIECES, INDEX, CURRENT_PIECE, CURRENT_PIECE_TYPE, CURRENT_ORIENTATION
 
     pygame.init()
 
@@ -92,6 +103,12 @@ def main():
     # Counter used when dropping a piece
     DROP_TIMEOUT = 0
 
+    # Initial interval between piece-dropping events
+    DROP_INTERVAL = 500
+
+    # Counter used when speeding up the drop interval
+    DROP_SPEEDUP_TIMEOUT = 0
+
     # Array for keeping tracked of relevant
     # game keys and whether they have been
     # pressed or not.
@@ -100,16 +117,13 @@ def main():
     # 1 = Key Pressed
     KEYS = [0, 0, 0, 0, 0, 0, 0, 0]
 
-    # Starting position for pieces
-    START_X = 2
-    START_Y = 6
-
-    # List to keep track of objects and their positions
-    PIECES = [LPIECE, IPIECE, LPIECE, SPIECE, LPIECE, LPIECE, IPIECE]
+    # Index into pieces list
     INDEX = 0
 
     # Current Tetris piece
-    CURRENT_PIECE = [[p[0] + START_X, p[1] + START_Y] for p in PIECES[INDEX]]
+    CURRENT_PIECE = [[p[0] + START_X, p[1] + START_Y] for p in PIECES[INDEX][1]]
+    CURRENT_PIECE_TYPE = PIECES[INDEX][0]
+    CURRENT_ORIENTATION = 0
 
     # Whether the game has ended
     GAMEOVER = False
@@ -197,17 +211,136 @@ def update_simulator():
 
 
 # Define test programs here.
+def rotate_ccw():
+    """
+    Rotate current piece counterclockwise.
+    """
+
+    global CURRENT_PIECE, CURRENT_PIECE_TYPE, CURRENT_ORIENTATION
+
+    if CURRENT_PIECE_TYPE == 'L':
+        # Orientation 0
+        # 0 2
+        # 1
+        if CURRENT_ORIENTATION == 0:
+            CURRENT_ORIENTATION = 3
+            CURRENT_PIECE[0][1] -= 1
+            CURRENT_PIECE[1][0] += 1
+            CURRENT_PIECE[2][0] -= 1
+        # Orientation 1
+        # 1 0
+        #   2
+        elif CURRENT_ORIENTATION == 1:
+            CURRENT_ORIENTATION = 0
+            CURRENT_PIECE[0][0] -= 1
+            CURRENT_PIECE[1][1] -= 1
+            CURRENT_PIECE[2][1] += 1
+        # Orientation 2
+        #   1
+        # 2 0
+        elif CURRENT_ORIENTATION == 2:
+            CURRENT_ORIENTATION = 1
+            CURRENT_PIECE[0][1] += 1
+            CURRENT_PIECE[1][0] -= 1
+            CURRENT_PIECE[2][0] += 1
+        # Orientation 3
+        # 2
+        # 0 1
+        elif CURRENT_ORIENTATION == 3:
+            CURRENT_ORIENTATION = 2
+            CURRENT_PIECE[0][0] += 1
+            CURRENT_PIECE[1][1] += 1
+            CURRENT_PIECE[2][1] -= 1
+    if CURRENT_PIECE_TYPE == 'I':
+        # Orientation 0
+        # 2 0 1
+        if CURRENT_ORIENTATION == 0:
+            CURRENT_ORIENTATION = 1
+            CURRENT_PIECE[1][0] -= 1
+            CURRENT_PIECE[1][1] -= 1
+            CURRENT_PIECE[2][0] += 1
+            CURRENT_PIECE[2][1] += 1
+        # Orientation 1
+        # 2
+        # 0
+        # 1
+        elif CURRENT_ORIENTATION == 1:
+            CURRENT_ORIENTATION = 0
+            CURRENT_PIECE[1][0] += 1
+            CURRENT_PIECE[1][1] += 1
+            CURRENT_PIECE[2][0] -= 1
+            CURRENT_PIECE[2][1] -= 1
+
+def rotate_cw():
+    """
+    Rotate current piece clockwise.
+    """
+
+    global CURRENT_PIECE, CURRENT_PIECE_TYPE, CURRENT_ORIENTATION
+
+    if CURRENT_PIECE_TYPE == 'L':
+        # Orientation 0
+        # 0 2
+        # 1
+        if CURRENT_ORIENTATION == 0:
+            CURRENT_ORIENTATION = 1
+            CURRENT_PIECE[0][0] += 1
+            CURRENT_PIECE[1][1] += 1
+            CURRENT_PIECE[2][1] -= 1
+        # Orientation 1
+        # 1 0
+        #   2
+        elif CURRENT_ORIENTATION == 1:
+            CURRENT_ORIENTATION = 2
+            CURRENT_PIECE[0][1] -= 1
+            CURRENT_PIECE[1][0] += 1
+            CURRENT_PIECE[2][0] -= 1
+        # Orientation 2
+        #   1
+        # 2 0
+        elif CURRENT_ORIENTATION == 2:
+            CURRENT_ORIENTATION = 3
+            CURRENT_PIECE[0][0] -= 1
+            CURRENT_PIECE[1][1] -= 1
+            CURRENT_PIECE[2][1] += 1
+        # Orientation 3
+        # 2
+        # 0 1
+        elif CURRENT_ORIENTATION == 3:
+            CURRENT_ORIENTATION = 0
+            CURRENT_PIECE[0][1] += 1
+            CURRENT_PIECE[1][0] -= 1
+            CURRENT_PIECE[2][0] += 1
+    if CURRENT_PIECE_TYPE == 'I':
+        # Orientation 0
+        # 2 0 1
+        if CURRENT_ORIENTATION == 0:
+            CURRENT_ORIENTATION = 1
+            CURRENT_PIECE[1][0] -= 1
+            CURRENT_PIECE[1][1] -= 1
+            CURRENT_PIECE[2][0] += 1
+            CURRENT_PIECE[2][1] += 1
+        # Orientation 1
+        # 2
+        # 0
+        # 1
+        elif CURRENT_ORIENTATION == 1:
+            CURRENT_ORIENTATION = 0
+            CURRENT_PIECE[1][0] += 1
+            CURRENT_PIECE[1][1] += 1
+            CURRENT_PIECE[2][0] -= 1
+            CURRENT_PIECE[2][1] -= 1
+
 def move_piece():
     """
     Move the piece left and right on the game board.
     """
 
-    global MOVE_TIMEOUT, CURRENT_PIECE, PIXELS
+    global MOVE_TIMEOUT, CURRENT_PIECE, CURRENT_PIECE_TYPE, CURRENT_ORIENTATION, PIXELS
 
     clear_buffer()
 
     if MOVE_TIMEOUT >= 75:
-        MOVE_TIMEOUT = 0
         if KEYS[KEY_LEFT]:
             # Move the piece.
             for i in range(len(CURRENT_PIECE)):
@@ -218,6 +351,7 @@ def move_piece():
                     # Collision on the left, scoot everything to the right
                     for j in range(len(CURRENT_PIECE)):
                         CURRENT_PIECE[j][0] += 1
+            MOVE_TIMEOUT = 0
         if KEYS[KEY_RIGHT]:
             # Move the piece.
             for i in range(len(CURRENT_PIECE)):
@@ -228,13 +362,24 @@ def move_piece():
                     # Collision on the right, scoot everything to the left
                     for j in range(len(CURRENT_PIECE)):
                         CURRENT_PIECE[j][0] -= 1
-        # TODO: rotate pieces
-        if KEYS[KEY_A]:
-            # rotate counterclockwise
-            pass
-        if KEYS[KEY_D]:
-            # rotate clockwise
-            pass
+            MOVE_TIMEOUT = 0
+        if KEYS[KEY_UP]:
+            # Rotate counterclockwise
+            rotate_ccw()
+
+            if collide_with_edges() or collide_with_pixels():
+                # If we collided with something, don't allow the rotation
+
+                rotate_cw()
+            MOVE_TIMEOUT = 0
+        if KEYS[KEY_DOWN]:
+            # Rotate clockwise
+            rotate_cw()
+
+            if collide_with_edges() or collide_with_pixels():
+                # If we collided with something, don't allow the rotation
+                rotate_ccw()
+            MOVE_TIMEOUT = 0
     else:
         MOVE_TIMEOUT += 1
 
@@ -263,11 +408,28 @@ def get_new_piece():
     Generate a new Tetris piece.
     """
 
-    global CURRENT_PIECE, PIECES, INDEX, START_X, START_Y
+    global CURRENT_PIECE, CURRENT_PIECE_TYPE, CURRENT_ORIENTATION, PIECES, INDEX
 
     INDEX += 1
     INDEX %= len(PIECES)
-    CURRENT_PIECE = [[p[0] + START_X, p[1] + START_Y] for p in PIECES[INDEX]]
+    CURRENT_PIECE = [[p[0] + START_X, p[1] + START_Y] for p in PIECES[INDEX][1]]
+    CURRENT_PIECE_TYPE = PIECES[INDEX][0]
+    CURRENT_ORIENTATION = 0
+    check_gameover()
+
+def collide_with_edges():
+    """
+    Check for collisions between the current piece and the edges of the game board.
+    """
+
+    global CURRENT_PIECE
+
+    for i in range(len(CURRENT_PIECE)):
+        if CURRENT_PIECE[i][0] < 0 or CURRENT_PIECE[i][0] >= BOARD_WIDTH:
+            return True
+        if CURRENT_PIECE[i][1] < 0 or CURRENT_PIECE[i][1] >= BOARD_HEIGHT:
+            return True
+    return False
 
 def collide_with_bottom():
     """
@@ -279,9 +441,6 @@ def collide_with_bottom():
     for i in range(len(CURRENT_PIECE)):
         if CURRENT_PIECE[i][1] < 0:
             # The piece has hit the bottom of the screen
-            convert_to_pixels()
-            get_new_piece()
-            clear_rows()
             return True
     return False
 
@@ -295,28 +454,36 @@ def collide_with_pixels():
     for i in range(len(CURRENT_PIECE)):
         if PIXELS[CURRENT_PIECE[i][0]][CURRENT_PIECE[i][1]]:
             # Another piece is below this one
-            convert_to_pixels()
-            get_new_piece()
-            clear_rows()
             return True
     return False
+
+def handle_collision():
+    """
+    Freeze a piece, get a new piece, and clear completed rows. To be called upon a collision.
+    """
+
+    convert_to_pixels()
+    get_new_piece()
+    clear_rows()
 
 def drop_pieces():
     """
     Drop the current piece down on the game board over time.
     """
 
-    global DROP_TIMEOUT, CURRENT_PIECE, PIXELS
+    global DROP_TIMEOUT, DROP_INTERVAL, DROP_SPEEDUP_TIMEOUT, CURRENT_PIECE, PIXELS
 
-    if DROP_TIMEOUT >= 500:
+    if DROP_TIMEOUT >= DROP_INTERVAL:
         DROP_TIMEOUT = 0
 
         for i in range(len(CURRENT_PIECE)):
             CURRENT_PIECE[i][1] -= 1
 
         # Try colliding the current piece with the bottom of the screen and with other pieces
-        if not collide_with_bottom():
-            collide_with_pixels()
+        if collide_with_bottom():
+            handle_collision()
+        elif collide_with_pixels():
+            handle_collision()
     else:
         DROP_TIMEOUT += 1
 
@@ -328,6 +495,12 @@ def drop_pieces():
     for i in range(len(PIXELS)):
         for j in range(len(PIXELS[0])):
             SCREEN_BUFFER[i][j] += PIXELS[i][j]
+
+    if DROP_SPEEDUP_TIMEOUT >= 8000:
+        DROP_INTERVAL = max(DROP_INTERVAL - 25, 50)
+        DROP_SPEEDUP_TIMEOUT = 0
+    else:
+        DROP_SPEEDUP_TIMEOUT += 1
 
 def completed_row(row):
     """
@@ -354,7 +527,7 @@ def clear_rows():
             # Clear the row and move everything down
             for r in range(row + 1, BOARD_HEIGHT):
                 for c in range(0, BOARD_WIDTH):
-                    PIXELS[r-1][c] = PIXELS[r][c]
+                    PIXELS[c][r-1] = PIXELS[c][r]
             # Reset row to 0 so we'll check all rows again
             row = 0
 
@@ -370,6 +543,7 @@ def check_gameover():
     global GAMEOVER
 
     if collide_with_pixels():
+        print 'Game over!'
         GAMEOVER = True
 
 
