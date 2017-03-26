@@ -210,23 +210,23 @@ def move_piece():
         MOVE_TIMEOUT = 0
         if KEYS[KEY_LEFT]:
             # Move the piece.
-            for i in xrange(len(CURRENT_PIECE)):
+            for i in range(len(CURRENT_PIECE)):
                 CURRENT_PIECE[i][0] -= 1
             # Check bounds and collisions on our new location.
-            for i in xrange(len(CURRENT_PIECE)):
+            for i in range(len(CURRENT_PIECE)):
                 if CURRENT_PIECE[i][0] < 0 or PIXELS[CURRENT_PIECE[i][0]][CURRENT_PIECE[i][1]]:
                     # Collision on the left, scoot everything to the right
-                    for j in xrange(len(CURRENT_PIECE)):
+                    for j in range(len(CURRENT_PIECE)):
                         CURRENT_PIECE[j][0] += 1
         if KEYS[KEY_RIGHT]:
             # Move the piece.
-            for i in xrange(len(CURRENT_PIECE)):
+            for i in range(len(CURRENT_PIECE)):
                 CURRENT_PIECE[i][0] += 1
             # Check bounds and collisions on our new location.
-            for i in xrange(len(CURRENT_PIECE)):
+            for i in range(len(CURRENT_PIECE)):
                 if CURRENT_PIECE[i][0] >= BOARD_WIDTH or PIXELS[CURRENT_PIECE[i][0]][CURRENT_PIECE[i][1]]:
                     # Collision on the right, scoot everything to the left
-                    for j in xrange(len(CURRENT_PIECE)):
+                    for j in range(len(CURRENT_PIECE)):
                         CURRENT_PIECE[j][0] -= 1
         # TODO: rotate pieces
         if KEYS[KEY_A]:
@@ -239,7 +239,7 @@ def move_piece():
         MOVE_TIMEOUT += 1
 
     # Output current piece in display.
-    for i in xrange(len(CURRENT_PIECE)):
+    for i in range(len(CURRENT_PIECE)):
         SCREEN_BUFFER[CURRENT_PIECE[i][0]][CURRENT_PIECE[i][1]] = 1
 
 # Note: your code will run every 1 ms, and no other timing mechanisms are
@@ -254,7 +254,7 @@ def convert_to_pixels():
 
     global CURRENT_PIECE, PIXELS
 
-    for i in xrange(len(CURRENT_PIECE)):
+    for i in range(len(CURRENT_PIECE)):
         # Move the current piece up and save it as pixels
         PIXELS[CURRENT_PIECE[i][0]][CURRENT_PIECE[i][1] + 1] = 1
 
@@ -276,7 +276,7 @@ def collide_with_bottom():
 
     global CURRENT_PIECE
 
-    for i in xrange(len(CURRENT_PIECE)):
+    for i in range(len(CURRENT_PIECE)):
         if CURRENT_PIECE[i][1] < 0:
             # The piece has hit the bottom of the screen
             convert_to_pixels()
@@ -292,7 +292,7 @@ def collide_with_pixels():
 
     global CURRENT_PIECE, PIXELS
 
-    for i in xrange(len(CURRENT_PIECE)):
+    for i in range(len(CURRENT_PIECE)):
         if PIXELS[CURRENT_PIECE[i][0]][CURRENT_PIECE[i][1]]:
             # Another piece is below this one
             convert_to_pixels()
@@ -311,7 +311,7 @@ def drop_pieces():
     if DROP_TIMEOUT >= 500:
         DROP_TIMEOUT = 0
 
-        for i in xrange(len(CURRENT_PIECE)):
+        for i in range(len(CURRENT_PIECE)):
             CURRENT_PIECE[i][1] -= 1
 
         # Try colliding the current piece with the bottom of the screen and with other pieces
@@ -321,12 +321,12 @@ def drop_pieces():
         DROP_TIMEOUT += 1
 
     # Draw current piece
-    for i in xrange(len(CURRENT_PIECE)):
+    for i in range(len(CURRENT_PIECE)):
         SCREEN_BUFFER[CURRENT_PIECE[i][0]][CURRENT_PIECE[i][1]] = 1
 
     # Draw pixels
-    for i in xrange(len(PIXELS)):
-        for j in xrange(len(PIXELS[0])):
+    for i in range(len(PIXELS)):
+        for j in range(len(PIXELS[0])):
             SCREEN_BUFFER[i][j] += PIXELS[i][j]
 
 def completed_row(row):
@@ -336,7 +336,7 @@ def completed_row(row):
 
     global PIXELS
 
-    for i in xrange(BOARD_WIDTH):
+    for i in range(BOARD_WIDTH):
         if not PIXELS[i][row]:
             return False
     return True
@@ -352,8 +352,8 @@ def clear_rows():
     while True:
         if completed_row(row):
             # Clear the row and move everything down
-            for r in xrange(row + 1, BOARD_HEIGHT):
-                for c in xrange(0, BOARD_WIDTH):
+            for r in range(row + 1, BOARD_HEIGHT):
+                for c in range(0, BOARD_WIDTH):
                     PIXELS[r-1][c] = PIXELS[r][c]
             # Reset row to 0 so we'll check all rows again
             row = 0
