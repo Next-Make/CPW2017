@@ -9,7 +9,6 @@ move characters around.
 import sys
 import time
 import pygame
-from pygame.locals import *
 
 # Window dimensions
 WINDOW_WIDTH = 550
@@ -145,9 +144,9 @@ def update_simulator():
     global GAME_COUNTER
 
     for event in pygame.event.get():
-        if event.type == QUIT:
+        if event.type == pygame.QUIT:
             sys.exit()
-        elif event.type == KEYDOWN and event.key == K_ESCAPE:
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             pygame.display.quit()
             sys.exit(0)
 
