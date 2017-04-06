@@ -1098,17 +1098,19 @@ void menu() {
 
         // Right button
         if (buttons[3] > 3) {
-            if (menu_selection < 6) {
-                menu_selection += 1;
-                menu_shift = 0;
-            }
+            menu_shift = 0;
+            menu_selection += 1;
+            menu_selection %= 7;
         }
 
         // Left button
         if (buttons[2] > 3) {
-            if (menu_selection > 0) {
+            menu_shift = 0;
+
+            if (menu_selection == 0) {
+                menu_selection = 6;
+            } else {
                 menu_selection -= 1;
-                menu_shift = 0;
             }
         }
 
