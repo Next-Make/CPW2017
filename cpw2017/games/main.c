@@ -898,8 +898,6 @@ void flappy() {
     }
 }
 
-// unsigned int shared_delay = 0;
-
 /**
  * Main memory game!
  */
@@ -918,8 +916,6 @@ void memory() {
         }
     }
 }
-
-// unsigned int shared_delay = 0;
 
 /**
  * Main frogger game!
@@ -940,8 +936,6 @@ void frogger() {
     }
 }
 
-// unsigned int shared_delay = 0;
-
 /**
  * Main snake game!
  */
@@ -959,8 +953,6 @@ void snake() {
         }
     }
 }
-
-// unsigned int shared_delay = 0;
 
 /**
  * Main guitar hero game!
@@ -1040,8 +1032,10 @@ void draw_text(const unsigned char text[], unsigned char size,
             char index = (menu_shift + i - 7);
 
             if (index < size && index >= 0) {
+                unsigned char text_index = (unsigned char) index;
+
                 outputLED[i][j] =
-                    (pgm_read_byte(&(text[(unsigned char)index])) &
+                    (pgm_read_byte(&(text[text_index])) &
                      (1 << (3 - j))) != 0;  // [j];
             } else {
                 outputLED[i][j] = 0;
