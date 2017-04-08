@@ -43,13 +43,12 @@ TIMEOUT = None
 GAME_COUNTER = None
 SCREEN_BUFFER = None
 
-
 def main():
     global CHAR_X, CHAR_Y, GAME_COUNTER, KEYS, SCREEN_BUFFER, SURFACE, TIMEOUT
 
     pygame.init()
 
-    title = "Pygame Keyboard Test"
+    title = "Frogger"
     SURFACE = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
     pygame.display.set_caption(title)
@@ -85,8 +84,6 @@ def main():
     KEYS = [0, 0, 0, 0, 0, 0, 0, 0]
 
     while True:
-        # key_test()
-        # move_character()
         frogger()
 
         # Needed for simulation to run.
@@ -263,63 +260,52 @@ TRUCK_RATE = 400
 # Variable to make truck move on every other cycle
 TRUCK_HALF = 0
 
+# Frogger global variables
+LEVEL = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [2, -2, 0], [3, 1, 0], [2, -1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 2, 0], [4, -1, 0], [1, 2, 0],[0, 0, 0], [0, 0, 0], [0, 0, 0], [2, -2, 0], [3, 1, 0], [2, -1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 2, 0], [1, -2, 0], [1, 2, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [2, -2, 0], [3, 1, 0], [2, -1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 2, 0], [4, -2, 0], [1, 2, 0], [0, 0, 0]] # [length, velocity, truck_index]
+
+ROW_INDEX = 0
+
 # Define program here.
 def frogger():
     global TIMEOUT, FROG, BLINK, BLINK_RATE, TRUCK_COUNTER, CURRENT_LEVEL, PRIOR_LEVEL, NEXT_LEVEL
 
-    CURRENT_LEVEL = generate_level()
-    PRIOR_LEVEL = generate_level()
-    NEXT_LEVEL = generate_level()
-
-    if TIMEOUT >= 50:
-        update_screen()
+    clear_buffer()
+    draw_frog()
+    draw_trucks()
+    if TIMEOUT >= 75:
         update_frog()
         update_trucks()
+        TIMEOUT = 0
     else:
         TIMEOUT += 1
         BLINK += 1
         TRUCK_COUNTER += 1
 
-def generate_level():
-    global TRUCK_VELOCITY_COUNTER, TRUCK_LENGTH_COUNTER
-    level = [[0,0],[0,0],[0,0]]
-    for row in range(7):
-        new_row = [TRUCK_LENGTH[TRUCK_LENGTH_COUNTER], TRUCK_VELOCITIES[TRUCK_VELOCITY_COUNTER]]
-        start_position = 1
-        while start_position < 7:
-            new_row.append(start_position)
-            start_position += new_row[0] + abs(new_row[1]) + 1
-        TRUCK_LENGTH_COUNTER = (TRUCK_LENGTH_COUNTER + 1) % len(TRUCK_LENGTH)
-        TRUCK_VELOCITY_COUNTER = (TRUCK_VELOCITY_COUNTER + 1) % len(TRUCK_VELOCITIES)
-        level.append(new_row)
-    return level
-
-def update_screen():
-    clear_buffer()
-
 def update_frog():
-    global FROG, BLINK, BLINK_RATE, SCREEN_BUFFER, TIMEOUT
+    global FROG, BLINK, BLINK_RATE, SCREEN_BUFFER, TIMEOUT, ROW_INDEX
 
-    key_press = False
-
-    if KEYS[KEY_UP] and not(FROG[1] >= 4):
-        FROG[1] += 1
-        key_press = True
+    if KEYS[KEY_UP]:
+        ROW_INDEX += 1
         TIMEOUT = 0
     if KEYS[KEY_LEFT] and not(FROG[0] <= 0):
         FROG[0] -= 1
-        key_press = True
         TIMEOUT = 0
-    if KEYS[KEY_DOWN] and not(FROG[1] <= 0):
-        FROG[1] -= 1
-        key_press = True
+    if KEYS[KEY_DOWN] and not ROW_INDEX <= 0:
+        ROW_INDEX -= 1
         TIMEOUT = 0
     if KEYS[KEY_RIGHT] and not(FROG[0] >= 6):
         FROG[0] += 1
-        key_press = True
         TIMEOUT = 0
 
-    #TODO: fix buggy response time with blinking
+    check_collision()
+
+    if ROW_INDEX == len(LEVEL):
+        print 'You won! :)'
+        exit(0)
+
+def draw_frog():
+    global BLINK
+
     if BLINK <= BLINK_RATE:
         SCREEN_BUFFER[FROG[0]][FROG[1]] = 2
     elif BLINK <= 2 * BLINK_RATE:
@@ -327,98 +313,92 @@ def update_frog():
     elif BLINK >= 2 * BLINK_RATE:
         BLINK = 0
 
-    #TODO: add collision detection
-    
+def draw_trucks():
+    """
+    Draw trucks
+    """
+    for i in xrange(ROW_INDEX, min(ROW_INDEX + 5, len(LEVEL))):
+        row = LEVEL[i]
+        # Draw the current trucks
+        if row[1] > 0:
+            # Moving to the right
+            speed = row[1]
+            length = row[0]
+            truck_index = row[2]
+
+            index = truck_index
+            for col in xrange(7):
+                if index >= speed: #  Drawing truck
+                    SCREEN_BUFFER[col][i - ROW_INDEX] = 2
+                index = (index + 1) % (speed + length)
+        elif row[1] < 0:
+            # Moving to the left
+            speed = abs(row[1])
+            length = row[0]
+            truck_index = row[2]
+
+            index = truck_index
+            for col in xrange(7):
+                if index < speed: #  Drawing truck
+                    SCREEN_BUFFER[col][i - ROW_INDEX] = 2
+                index = (index - 1) % (speed + length)
+
 def update_trucks():
     """
     Update position of trucks
     """
-    global CURRENT_LEVEL, SCREEN_BUFFER, TIMEOUT, TRUCK_COUNTER, TRUCK_HALF
+    global TRUCK_COUNTER, TRUCK_HALF
+
+    TRUCK_COUNTER += 1
 
     if TRUCK_COUNTER >= TRUCK_RATE:
-        for row in CURRENT_LEVEL:
-
-            if row[1] == 2 or (row[1] == 1 and TRUCK_HALF == 1):
-                for i in range(2, len(row)):
-                    row[i] += 1
-            elif row[1] == -2 or (row[1] == -1 and TRUCK_HALF == 1):
-                for i in range(2,len(row)):
-                    row[i] -= 1
-
-            # Post-processing: delete trucks that are gone, add new ones as needed, 
-            # Process positive velocities
-            if row[1] == 2 or (row[1] == 1 and TRUCK_HALF == 1):
-
-                # Check if the end of the last truck extends beyond the screen
-                if row[-1] - row[0] + 1 > 6:
-                    del(row[-1])
-
-                # Check if the first truck has advanced far enough to add another truck
-                # Sufficient gap is determined by velocity + 1 (row[1])
-                if row[2] - row[0] + 1 > row[1]:
-                    # Add a truck at position 0
-                    row.insert(2,0)
-
-            # Process negative velocities
-            elif row[1] == -2 or row[1] == -1 and TRUCK_HALF == 1:
-                if row[2] + row[0] -1 < 0:
-                    del(row[2])
-
-                if row[-1] + row[0] -1< 7 + row[1]:
-                    row.append(7)
-        
         # If trucks were updated, reset the truck counter
         TRUCK_COUNTER = 0
         TRUCK_HALF = (TRUCK_HALF + 1) % 2
 
-        # Write all trucks to screen
-        for row_num in range(START_ROW, min(START_ROW + 6, 10)):
-            for truck in CURRENT_LEVEL[row_num][2:]:
-                # Write the pixels for each truck
-                for offset in range(CURRENT_LEVEL[row_num][0]):
-                    if CURRENT_LEVEL[row_num][1] < 0 and truck + offset < 7 and truck + offset > -1:
-                        SCREEN_BUFFER[truck + offset][row_num - START_ROW] = 2
-                    elif CURRENT_LEVEL[row_num][1] > 0 and truck - offset > -1 and truck - offset < 7:
-                        # print("row_num: {} \ntruck - offset: {}\n".format(row_num, truck - offset))
-                        SCREEN_BUFFER[truck - offset][row_num - START_ROW] = 2
-                    
-    TIMEOUT = 0
+        for row in LEVEL:
+            # Update truck indices
+            if abs(row[1]) == 2 or (abs(row[1]) == 1 and TRUCK_HALF == 1):
+                row[2] = (row[2] - 1) % (abs(row[1]) + row[0])
 
-def scroll():
+    check_collision()
+
+def check_collision():
     """
-    Deletes bottom-most row of TRUCKS that moves off the screen.
-    Create new row of trucks and adds it to top of TRUCKS.
-    Moves frog position down to maintain its relative position
+    Checks if the frog has collided with a truck. Ends the game if it has.
     """
-    global FROG, TRUCKS, SCREEN_BUFFER, TRUCK_LENGTH_COUNTER, TRUCK_VELOCITY_COUNTER
+    current_row = ROW_INDEX + 1
+    if current_row < len(LEVEL):
+        row = LEVEL[current_row]
+        # Calculate truck locations in current row
+        if row[1] > 0:
+            # Moving to the right
+            speed = row[1]
+            length = row[0]
+            truck_index = row[2]
 
-    # Move frog down one position to allow scrolling.
-    #if FROG[1] == 5
+            index = truck_index
+            for col in xrange(7):
+                if index >= speed: #  A truck exists here
+                    # Check if this is at the frog's location
+                    if col == FROG[0]:
+                        print 'You lost! :('
+                        exit(0)
+                index = (index + 1) % (speed + length)
+        elif row[1] < 0:
+            # Moving to the left
+            speed = abs(row[1])
+            length = row[0]
+            truck_index = row[2]
 
-
-
-
-    FROG[1] -= 1
-
-    del(TRUCKS[0])
-
-    new_row = [TRUCK_LENGTH[TRUCK_LENGTH_COUNTER], TRUCK_VELOCITIES[TRUCK_VELOCITY_COUNTER]]
-    TRUCK_VELOCITY_COUNTER = (TRUCK_VELOCITY_COUNTER + 1) % 4
-    TRUCK_LENGTH_COUNTER = (TRUCK_LENGTH_COUNTER + 1) % 3
-
-    # Add a little "randomness" to the starting point of the first truck of each new row
-    truck_position = TRUCK_LENGTH_COUNTER
-    
-    # Add trucks to the new row
-    while truck_position < 7:
-        new_row.append(truck_position)
-
-        # Beginning of next truck must be after the length of the first truck and with a gap
-        # Gap is either 2 or 3 as determined by the pairity of TRUCK_VELOCITY_COUNTER
-        truck_position += new_row[0] + (TRUCK_VELOCITY_COUNTER % 2 + 3)
-
-    TRUCKS.append(new_row)    
-
+            index = truck_index
+            for col in xrange(7):
+                if index < speed: #  A truck exists here
+                    # Check if this is at the frog's location
+                    if col == FROG[0]:
+                        print 'You lost! :('
+                        exit(0)
+                index = (index - 1) % (speed + length)
 
 if __name__ == "__main__":
     main()
