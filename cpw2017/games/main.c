@@ -898,22 +898,310 @@ void flappy() {
     }
 }
 
+// Game state variables
+//
+// 0 = configuration (handedness)
+// 1 = displaying (new sequence)
+// 2 = awaiting (recreate sequence)
+int GAME_STATE = 1;
+
+// "Random" sequence of integers for rectangles in honor of Class of 2021!
+//
+// 0 = Top Left
+// 1 = Top Right
+// 2 = Bottom Left
+// 3 = Bottom Right
+const int SEQUENCE[21] = {0, 2, 1, 3, 3, 1, 0,
+                          3, 0, 1, 2, 2, 0, 3,
+                          2, 1, 1, 0, 3, 0, 0};
+int INDEX = 0;
+
+// Variables for keeping track of the
+// game configuration.
+const int TOP_LEFT = 0;
+const int TOP_RIGHT = 1;
+const int BOTTOM_LEFT = 6;
+const int BOTTOM_RIGHT = 7;
+
+const int SOFT_RESET = 2;  // Reset game only
+const int HARD_RESET = 5;  // Reset game and handedness
+
+// Variables for keeping track of where
+// we are in the displaying of the sequence.
+int DISPLAYING = 0;
+int ITER_INDEX = 0;
+int DISPLAY_DELAY = 0;
+
+// Variables for keeping track of where
+// we are in when replaying the sequence.
+int REPLAY_INDEX = 0;
+int REPLAY_DELAY = 0;
+int DISPLAY_REPLAY = 0;
+
+// Counter for keeping track of how to
+// display that the user has replayed
+// the sequence correctly.
+int RIGHT_DELAY = 0;
+
+// Counter for keeping track of how to
+// display that the user has replayed
+// the sequence incorrectly.
+int WRONG_DELAY = 0;
+
+
+/**
+ * Fill the appropriate squares for the boarder in outputLED array.
+ */
+void fill_boarder() {
+    clear_LEDs();
+
+    outputLED[0][2] = 2;
+    outputLED[1][2] = 2;
+    outputLED[2][2] = 2;
+    outputLED[3][0] = 2;
+    outputLED[3][1] = 2;
+    outputLED[3][2] = 2;
+    outputLED[3][3] = 2;
+    outputLED[3][4] = 2;
+    outputLED[4][2] = 2;
+    outputLED[5][2] = 2;
+    outputLED[6][2] = 2;
+}
+
+/**
+ * Draw rectangle corresponding to the sequence index.
+ *
+ * @param rect_index: The index corresponding to a particular rectangle
+                      that will be displayed from the sequence.
+ */
+void draw_rectangle(int rect_index) {
+    switch (rect_index) {
+        case 0:
+            outputLED[0][3] = 2;
+            outputLED[0][4] = 2;
+            outputLED[1][3] = 2;
+            outputLED[1][4] = 2;
+            outputLED[2][3] = 2;
+            outputLED[2][4] = 2;
+            break;
+        case 1:
+            outputLED[4][3] = 2;
+            outputLED[4][4] = 2;
+            outputLED[5][3] = 2;
+            outputLED[5][4] = 2;
+            outputLED[6][3] = 2;
+            outputLED[6][4] = 2;
+            break;
+        case 2:
+            outputLED[0][0] = 2;
+            outputLED[0][1] = 2;
+            outputLED[1][0] = 2;
+            outputLED[1][1] = 2;
+            outputLED[2][0] = 2;
+            outputLED[2][1] = 2;
+            break;
+        case 3:
+            outputLED[4][0] = 2;
+            outputLED[4][1] = 2;
+            outputLED[5][0] = 2;
+            outputLED[5][1] = 2;
+            outputLED[6][0] = 2;
+            outputLED[6][1] = 2;
+            break;
+        default:
+            // Do nothing here.
+            break;
+    }
+}
+
+/**
+ * Wait for the next element in the sequence.
+ */
+void await_sequence() {
+    int seq_index;
+    int next_button;
+    int button_pressed = -1;
+
+    REPLAY_DELAY++;
+
+    if (DISPLAY_REPLAY && REPLAY_DELAY < 2500) {
+        return;
+    } else {
+        fill_boarder();
+        REPLAY_DELAY = 0;
+        DISPLAY_REPLAY = 0;
+    }
+
+    // We will have already incremented INDEX by the
+    // time we get to here, so the inequality is strict.
+    if (REPLAY_INDEX < INDEX) {
+        seq_index = REPLAY_INDEX % 21;
+        next_button = SEQUENCE[seq_index];
+
+        if (buttons[SOFT_RESET] > BUT) {
+            INDEX = 0;
+            GAME_STATE = 1;
+            REPLAY_INDEX = 0;
+            REPLAY_DELAY = 0;
+            DISPLAY_REPLAY = 0;
+
+            return;
+        } else if (buttons[HARD_RESET] > BUT) {
+            INDEX = 0;
+            GAME_STATE = 1;
+            REPLAY_INDEX = 0;
+            REPLAY_DELAY = 0;
+            DISPLAY_REPLAY = 0;
+
+            menu_run = 0;
+            return;
+        }
+
+        if (buttons[TOP_LEFT] > BUT) {
+            button_pressed = 0;
+        } else if (buttons[TOP_RIGHT] > BUT) {
+            button_pressed = 1;
+        } else if (buttons[BOTTOM_LEFT] > BUT) {
+            button_pressed = 2;
+        } else if (buttons[BOTTOM_RIGHT] > BUT) {
+            button_pressed = 3;
+        }
+
+        if (button_pressed > -1) {
+            draw_rectangle(button_pressed);
+
+            if (button_pressed == next_button) {
+                REPLAY_INDEX++;
+                DISPLAY_REPLAY = 1;
+            } else {
+                draw_rectangle(next_button);
+                INDEX = 0;
+                GAME_STATE = 4;
+                REPLAY_INDEX = 0;
+                REPLAY_DELAY = 0;
+                DISPLAY_REPLAY = 0;
+            }
+        }
+    } else {
+        GAME_STATE = 3;
+        REPLAY_DELAY = 0;
+        REPLAY_INDEX = 0;
+        DISPLAY_REPLAY = 0;
+    }
+}
+
+/**
+ * Generate the memory sequence and display.
+ */
+void generate_sequence() {
+    int seq_index;
+
+    if (ITER_INDEX <= INDEX) {
+        if (DISPLAY_DELAY > 5000) {
+            DISPLAY_DELAY = 0;
+            fill_boarder();
+
+            if (DISPLAYING) {
+                ITER_INDEX++;
+            } else {
+                seq_index = ITER_INDEX % 21;
+                draw_rectangle(SEQUENCE[seq_index]);
+            }
+
+            DISPLAYING = ~DISPLAYING;
+        } else {
+            DISPLAY_DELAY++;
+        }
+    } else {
+        INDEX++;
+        ITER_INDEX = 0;
+
+        DISPLAYING = 0;
+        DISPLAY_DELAY = 0;
+
+        GAME_STATE = 2;
+    }
+}
+
+/**
+ * Indicate that the user has replayed the sequence correctly.
+ */
+void display_correct() {
+    if (RIGHT_DELAY > 5400) {
+        GAME_STATE = 1;
+        RIGHT_DELAY = 0;
+    } else {
+        if (RIGHT_DELAY > 4500) {
+            fill_boarder();
+        } else if (RIGHT_DELAY > 1500) {
+            clear_LEDs();
+
+            outputLED[1][1] = 2;
+            outputLED[2][0] = 2;
+            outputLED[3][1] = 2;
+            outputLED[4][2] = 2;
+            outputLED[5][3] = 2;
+            outputLED[6][4] = 2;
+        }
+
+        RIGHT_DELAY++;
+    }
+}
+
+/**
+ * Indicate that the user has replayed the sequence incorrectly.
+ */
+void display_wrong() {
+    if (WRONG_DELAY > 5900) {
+        GAME_STATE = 1;
+        WRONG_DELAY = 0;
+    } else {
+        if (WRONG_DELAY > 5000) {
+            fill_boarder();
+        } else if (WRONG_DELAY > 3000) {
+            clear_LEDs();
+
+            outputLED[1][0] = 2;
+            outputLED[1][4] = 2;
+            outputLED[2][1] = 2;
+            outputLED[2][3] = 2;
+            outputLED[3][2] = 2;
+            outputLED[4][1] = 2;
+            outputLED[4][3] = 2;
+            outputLED[5][0] = 2;
+            outputLED[5][4] = 2;
+        } else if (WRONG_DELAY > 1800) {
+            // We include this delay because
+            // we won't have turned off the
+            // rectangle pressed previously
+            // in await_sequence().
+            fill_boarder();
+        }
+
+        WRONG_DELAY++;
+    }
+}
+
 /**
  * Main memory game!
  */
 void memory() {
-    shared_delay += 1;
-    if (shared_delay > 1000) {
-        clear_LEDs();
-
-        shared_delay = 0;
-
-        if (buttons[1] | buttons[4] | buttons[7]) {
-            menu_run = 0;
-
-            // Reset variables
-            shared_delay = 0;
-        }
+    switch (GAME_STATE) {
+        case 1:
+            generate_sequence();
+            break;
+        case 2:
+            await_sequence();
+            break;
+        case 3:
+            display_correct();
+            break;
+        case 4:
+            display_wrong();
+            break;
+        default:
+            // Do nothing here.
+            break;
     }
 }
 
