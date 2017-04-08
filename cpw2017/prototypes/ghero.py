@@ -76,12 +76,17 @@ RIGHT_SIDE = 6
 
 TRANSITION_DELAY = 0
 
+# 1 is bottom, 2 is mid, 3 is top
+SONG = [1, 3, 2, 3, 1, 3, 1, 2, 2, 3, 1, 3, 2, 1, 1, 3, 2, 3, 2]
+SONG_INDEX = 0
+DOUBLE = 0
+
 def main():
     global GAME_COUNTER, KEYS, SCREEN_BUFFER, SURFACE, TIMEOUT
 
     pygame.init()
 
-    title = "Guitar Hero?"
+    title = "Guitar Hero"
     SURFACE = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
     pygame.display.set_caption(title)
@@ -153,8 +158,8 @@ def play_game():
             if event.key in RIGHT_KEY_LOC_DICT:
                 right_press = RIGHT_KEY_LOC_DICT[event.key]
 
-    # Move dots?
-    if TRANSITION_DELAY > max(DELAY_THRESHOLD, MIN_DELAY_THRESHOLD):
+    # Move dots
+    if TRANSITION_DELAY > DELAY_THRESHOLD:
         TRANSITION_DELAY = 0 # reset
         transition()
         generate_new()
@@ -182,7 +187,16 @@ def play_game():
             left_wins()
 
 def generate_new():
-    SCREEN_BUFFER[3][random.randint(1,3)] = 1
+    global SONG, SONG_INDEX, DOUBLE
+
+    SCREEN_BUFFER[3][SONG[SONG_INDEX]] = 1
+    SONG_INDEX = (SONG_INDEX + 1) % len(SONG)
+
+    DOUBLE = (DOUBLE + 1) % 7
+    if DOUBLE == 0:
+        # Create a double note
+        SCREEN_BUFFER[3][SONG[SONG_INDEX]] = 1
+        SONG_INDEX = (SONG_INDEX + 1) % len(SONG)
 
 def transition():
     global SCREEN_BUFFER, WINS_LEFT, WINS_RIGHT
