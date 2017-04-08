@@ -234,35 +234,25 @@ def move_character():
 # Frog position [column, row]
 FROG = [3, 1]
 
-# Within each row, each truck has the same speed and the same length.
-# The trucks list is a list of lists where each sublist represents a row.
-# Within each sublist, the first element denotes the length of the trucks in that row (2 to 4)
-# The second element denotes the velocity (-2, -1, 1, or 2) with positive being to the right
-# Subsequent elements denote the starting position of each truck
-PRIOR_LEVEL = []
-CURRENT_LEVEL = []
-NEXT_LEVEL = []
-START_ROW = 0
-
-TRUCK_VELOCITIES = [-1,2,1,-2]
-TRUCK_VELOCITY_COUNTER = 0
-
-TRUCK_LENGTH = [2,3,4]
-TRUCK_LENGTH_COUNTER = 0
-
 # A blink counter (BLINK) and its reset point (BLINK_RATE)
 BLINK = 0
 BLINK_RATE = 70
 
+# Within each row, each truck has the same speed and the same length.
+# The level list is a list of lists where each sublist represents a row.
+# Within each sublist, the first element denotes the length of the trucks in that row (2 to 4).
+# The second element denotes the velocity (-2, -1, 1, or 2) with positive being to the right.
+# The third element is the truck index, which indicates the portion of the first truck in a row that is still off the screen.
+# A sublist with all 0s represents an empty row.
+LEVEL = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [2, -2, 0], [3, 1, 0], [2, -1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 2, 0], [4, -1, 0], [1, 2, 0],[0, 0, 0], [0, 0, 0], [0, 0, 0], [2, -2, 0], [3, 1, 0], [2, -1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 2, 0], [1, -2, 0], [1, 2, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [2, -2, 0], [3, 1, 0], [2, -1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 2, 0], [4, -2, 0], [1, 2, 0], [0, 0, 0]] # [length, velocity, truck_index]
+
 # Truck movement counter (TRUCK_COUNTER) and its reset point (TRUCK_RATE)
 TRUCK_COUNTER = 0
 TRUCK_RATE = 400
-# Variable to make truck move on every other cycle
+# Variable to make speed 1 trucks move on every other cycle
 TRUCK_HALF = 0
 
-# Frogger global variables
-LEVEL = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [2, -2, 0], [3, 1, 0], [2, -1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 2, 0], [4, -1, 0], [1, 2, 0],[0, 0, 0], [0, 0, 0], [0, 0, 0], [2, -2, 0], [3, 1, 0], [2, -1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 2, 0], [1, -2, 0], [1, 2, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [2, -2, 0], [3, 1, 0], [2, -1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 2, 0], [4, -2, 0], [1, 2, 0], [0, 0, 0]] # [length, velocity, truck_index]
-
+# The beginning of the window of rows we can see
 ROW_INDEX = 0
 
 # Define program here.
