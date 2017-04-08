@@ -68,6 +68,7 @@ class Square(object):
         if other is not None:
             other.behind = self
 
+<<<<<<< HEAD
     def destroy(self):
         """
         Remove this current square from the body.
@@ -84,6 +85,8 @@ class Square(object):
         elif behind is not None:
             behind.ahead = None
 
+=======
+>>>>>>> 0d0fe43ddf7f130bf0e1daa1f9f965de40e3229b
     def __str__(self):
         descr = "({x}, {y})".format(x=self.x, y=self.y)
 
@@ -366,7 +369,11 @@ def update_game():
     if GAME_STATE != UPDATE:
         return
 
+<<<<<<< HEAD
     if EXTEND_DELAY > 150000:#75000:
+=======
+    if EXTEND_DELAY > 75000:
+>>>>>>> 0d0fe43ddf7f130bf0e1daa1f9f965de40e3229b
         EXTEND_DELAY = 0
         update_snake()
     else:
