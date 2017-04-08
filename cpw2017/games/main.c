@@ -7,6 +7,7 @@
 
 #include <avr/io.h>
 #define F_CPU 8000000
+#include <avr/pgmspace.h>
 #include <util/delay.h>
 
 // Threshold for button state
@@ -34,46 +35,45 @@ unsigned char everyFourth = 0;
  */
 void write_LEDs() {
     if (correctLED) {
-        // Turn off all rows
-        DDRC |= (1 << PC1);
-        DDRC |= (1 << PC2);
-        DDRC |= (1 << PC3);
-        DDRC |= (1 << PC4);
-        DDRC |= (1 << PC5);
+         // Turn off all rows
+         DDRC |= (1 << PC1);
+         DDRC |= (1 << PC2);
+         DDRC |= (1 << PC3);
+         DDRC |= (1 << PC4);
+         DDRC |= (1 << PC5);
 
-        PORTC |= (1 << PC1);
-        PORTC |= (1 << PC2);
-        PORTC |= (1 << PC3);
-        PORTC |= (1 << PC4);
-        PORTC |= (1 << PC5);
+         PORTC |= (1 << PC1);
+         PORTC |= (1 << PC2);
+         PORTC |= (1 << PC3);
+         PORTC |= (1 << PC4);
+         PORTC |= (1 << PC5);
 
-        // Turn on correct row
-        if (row == 1) {
-            PORTC &= ~(1 << PC1);
-        } else if (row == 2) {
-            PORTC &= ~(1 << PC2);
-        } else if (row == 3) {
-            PORTC &= ~(1 << PC3);
-        } else if (row == 4) {
-            PORTC &= ~(1 << PC4);
-        } else {
-            PORTC &= ~(1 << PC5);
-        }
+         // Turn on correct row
+         if (row == 1) {
+             PORTC &= ~(1 << PC1);
+         } else if (row == 2) {
+             PORTC &= ~(1 << PC2);
+         } else if (row == 3) {
+             PORTC &= ~(1 << PC3);
+         } else if (row == 4) {
+             PORTC &= ~(1 << PC4);
+         } else {
+             PORTC &= ~(1 << PC5);
+         }
 
-        // Turn on LEDs in that row
-        for (unsigned char i = 0; i < 7; i++) {
-            if (outputLED[i][row] == 0) {
-                DDRD |= (1 << (i + 1));
-                PORTD &= ~(1 << (i + 1));
-            } else if (outputLED[i][row] == 1) {
-                DDRD &= ~(1 << (i + 1));
-                PORTD |= (1 << (i + 1));
-            } else {
-                DDRD |= (1 << (i + 1));
-                PORTD |= (1 << (i + 1));
-            }
-        }
-
+         // Turn on LEDs in that row
+         for (unsigned char i = 0; i < 7; i++) {
+             if (outputLED[i][row] == 0) {
+                 DDRD |= (1 << (i + 1));
+                 PORTD &= ~(1 << (i + 1));
+             } else if (outputLED[i][row] == 1) {
+                 DDRD &= ~(1 << (i + 1));
+                 PORTD |= (1 << (i + 1));
+             } else {
+                 DDRD |= (1 << (i + 1));
+                 PORTD |= (1 << (i + 1));
+             }
+         }
     } else {
         // Turn off all rows
         DDRC |= (1 << PC4);
@@ -273,7 +273,7 @@ void get_buttons() {
 
 unsigned char pong_posL = 2;
 unsigned char pong_posR = 2;
-unsigned int pong_delay = 0;
+unsigned int shared_delay = 0;
 
 char pong_velY = 1;
 char pong_velX = 1;
@@ -289,9 +289,9 @@ unsigned char pong_score = 1;
  * Main pong game!
  */
 void pong() {
-    pong_delay += 1;
-    if (pong_delay > 1000) {
-        pong_delay = 0;
+    shared_delay += 1;
+    if (shared_delay > 1000) {
+        shared_delay = 0;
 
         if (buttons[3] | buttons[4]) {
             menu_run = 0;
@@ -307,7 +307,7 @@ void pong() {
             pong_balY = 2;
             pong_posL = 2;
             pong_posR = 2;
-            pong_delay = 0;
+            shared_delay = 0;
         }
 
         if (pong_score == 1) {
@@ -832,32 +832,27 @@ void tetris() {
 }
 
 unsigned char flappy_birdY = 4;
-unsigned int flappy_delay = 0;
-unsigned char flappy_top[36] = {0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 2, 0,
-                                1, 0, 3, 0, 1, 0, 1, 0, 2, 0, 1, 0,
-                                0, 0, 1, 0, 0, 0, 1, 0, 3, 0, 2, 0};
-unsigned char flappy_bottom[36] = {0, 0, 0, 0, 2, 0, 2, 0, 1, 0, 2, 0,
-                                   1, 0, 0, 0, 1, 0, 2, 0, 1, 0, 2, 0,
-                                   1, 0, 1, 0, 2, 0, 1, 0, 0, 0, 1, 0};
+// unsigned int shared_delay = 0;
+const unsigned char flappy_top[36] PROGMEM = {
+    0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 2, 0, 1, 0, 3, 0, 1, 0,
+    1, 0, 2, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0, 2, 0};
+const unsigned char flappy_bottom[36] PROGMEM = {
+    0, 0, 0, 0, 2, 0, 2, 0, 1, 0, 2, 0, 1, 0, 0, 0, 1, 0,
+    2, 0, 1, 0, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 0, 0, 1, 0};
 unsigned int flappy_shift = 0;
 
 /**
  * Main flappy birds game!
  */
+unsigned char flappy_holdon = 1;
 void flappy() {
     clear_LEDs();
-    flappy_delay += 1;
+    shared_delay += 1;
 
-    if (flappy_delay > 1000) {
-        flappy_delay = 0;
+    if (shared_delay > 1000) {
+        shared_delay = 0;
 
         flappy_shift += 1;
-
-        if ((flappy_birdY <= (flappy_bottom[flappy_shift] - 1)) |
-            (flappy_birdY >= 6 - flappy_top[flappy_shift])) {
-            flappy_shift = 0;  // Reset shift
-            menu_run = 0;
-        }
 
         if (buttons[5] > 3) {
             if (flappy_birdY < 4) {
@@ -866,102 +861,121 @@ void flappy() {
         } else if (flappy_birdY > 0) {
             flappy_birdY -= 1;
         }
-    }
 
-    outputLED[0][flappy_birdY] = 2;
-
-    for (unsigned char i = 0; i < 6; i++) {
-        for (unsigned char j = 0; j <= 4; j++) {
-            if ((i + flappy_shift) <= 36) {
-                if ((j + 1) <= flappy_bottom[i + flappy_shift]) {
-                    outputLED[i][j] = 1;
-                }
-                if (j >= 5 - flappy_top[i + flappy_shift]) {
-                    outputLED[i][j] = 1;
-                }
+        if ((flappy_birdY <=
+             (pgm_read_byte(&(flappy_bottom[flappy_shift])) - 1)) |
+            (flappy_birdY >=
+             5 - (pgm_read_byte(&(flappy_top[flappy_shift]))))) {
+            if (flappy_holdon) {
+                flappy_holdon = 0;
+            } else {
+                flappy_shift = 0;  // Reset shift
+                menu_run = 0;
+                flappy_holdon = 1;
+                return;
             }
         }
     }
+
+    outputLED[0][flappy_birdY] = 2;
+    if (flappy_holdon != 0) {
+        for (unsigned char i = 0; i < 6; i++) {
+            for (unsigned char j = 0; j <= 4; j++) {
+                if ((i + flappy_shift) <= 36) {
+                    if ((j + 1) <=
+                        (pgm_read_byte(&(flappy_bottom[i + flappy_shift])))) {
+                        outputLED[i][j] = 1;
+                    }
+                    if (j >=
+                        5 - (pgm_read_byte(&(flappy_top[i + flappy_shift])))) {
+                        outputLED[i][j] = 1;
+                    }
+                }
+            }
+        }
+    } else {
+        clear_LEDs();
+    }
 }
 
-unsigned int memory_delay = 0;
+// unsigned int shared_delay = 0;
 
 /**
  * Main memory game!
  */
 void memory() {
-    memory_delay += 1;
-    if (memory_delay > 1000) {
+    shared_delay += 1;
+    if (shared_delay > 1000) {
         clear_LEDs();
 
-        memory_delay = 0;
+        shared_delay = 0;
 
         if (buttons[1] | buttons[4] | buttons[7]) {
             menu_run = 0;
 
             // Reset variables
-            memory_delay = 0;
+            shared_delay = 0;
         }
     }
 }
 
-unsigned int frogger_delay = 0;
+// unsigned int shared_delay = 0;
 
 /**
  * Main frogger game!
  */
 void frogger() {
-    frogger_delay += 1;
-    if (frogger_delay > 1000) {
+    shared_delay += 1;
+    if (shared_delay > 1000) {
         clear_LEDs();
 
-        frogger_delay = 0;
+        shared_delay = 0;
 
         if (buttons[1] | buttons[4] | buttons[7]) {
             menu_run = 0;
 
             // Reset variables
-            frogger_delay = 0;
+            shared_delay = 0;
         }
     }
 }
 
-unsigned int snake_delay = 0;
+// unsigned int shared_delay = 0;
 
 /**
  * Main snake game!
  */
 void snake() {
-    snake_delay += 1;
-    if (snake_delay > 1000) {
+    shared_delay += 1;
+    if (shared_delay > 1000) {
         clear_LEDs();
 
-        snake_delay = 0;
+        shared_delay = 0;
 
         if (buttons[1] | buttons[4] | buttons[7]) {
             menu_run = 0;
             // reset variables
-            snake_delay = 0;
+            shared_delay = 0;
         }
     }
 }
 
-unsigned int ghero_delay = 0;
+// unsigned int shared_delay = 0;
 
 /**
  * Main guitar hero game!
  */
 void ghero() {
-    ghero_delay += 1;
-    if (ghero_delay > 1000) {
+    shared_delay += 1;
+    if (shared_delay > 1000) {
         clear_LEDs();
 
-        ghero_delay = 0;
+        shared_delay = 0;
 
         if (buttons[1] | buttons[4] | buttons[7]) {
             menu_run = 0;
             // reset variables
-            ghero_delay = 0;
+            shared_delay = 0;
         }
     }
 }
@@ -970,16 +984,16 @@ unsigned char menu_selection = 0;
 unsigned int menu_delay = 0;
 unsigned char menu_shift = 0;
 
-const unsigned char text_pong[15] = {
+const unsigned char text_pong[15] PROGMEM = {
     0b00001111, 0b00000101, 0b00000111, 0b00000000, 0b00001111,
     0b00001001, 0b00001111, 0b00000000, 0b00001111, 0b00000001,
     0b00001111, 0b00000000, 0b00001111, 0b00001101, 0b00001101};
-const unsigned char text_tetris[24] = {
+const unsigned char text_tetris[24] PROGMEM = {
     0b00000001, 0b00001111, 0b00000001, 0b00000000, 0b00001111, 0b00001011,
     0b00001011, 0b00000000, 0b00000001, 0b00001111, 0b00000001, 0b00000000,
     0b00001111, 0b00000111, 0b00001011, 0b00000000, 0b00001001, 0b00001111,
     0b00001001, 0b00000000, 0b00001011, 0b00001011, 0b00001111};
-const unsigned char text_flappy[40] = {
+const unsigned char text_flappy[40] PROGMEM = {
     0b00001111, 0b00000011, 0b00000001, 0b00000000, 0b00001111, 0b00001000,
     0b00001000, 0b00000000, 0b00001111, 0b00000011, 0b00001111, 0b00000000,
     0b00001111, 0b00000101, 0b00000111, 0b00000000, 0b00001111, 0b00000101,
@@ -987,23 +1001,23 @@ const unsigned char text_flappy[40] = {
     0b00000000, 0b00001111, 0b00001010, 0b00001110, 0b00000000, 0b00001001,
     0b00001111, 0b00001001, 0b00000000, 0b00001111, 0b00000111, 0b00001011,
     0b00000000, 0b00001111, 0b00001001, 0b00000110};
-const unsigned char text_memory[23] = {
+const unsigned char text_memory[23] PROGMEM = {
     0b00001111, 0b00000010, 0b00001111, 0b00000000, 0b00001111, 0b00001011,
     0b00001011, 0b00000000, 0b00001111, 0b00000010, 0b00001111, 0b00000000,
     0b00001111, 0b00001001, 0b00001111, 0b00000000, 0b00001111, 0b00000111,
     0b00001011, 0b00000000, 0b00000011, 0b00001110, 0b00000011};
-const unsigned char text_frogger[27] = {
+const unsigned char text_frogger[27] PROGMEM = {
     0b00001111, 0b00000011, 0b00000001, 0b00000000, 0b00001111, 0b00000111,
     0b00001011, 0b00000000, 0b00001111, 0b00001001, 0b00001111, 0b00000000,
     0b00001111, 0b00001101, 0b00001101, 0b00000000, 0b00001111, 0b00001101,
     0b00001101, 0b00000000, 0b00001111, 0b00001011, 0b00001011, 0b00000000,
     0b00001111, 0b00000111, 0b00001011};
-const unsigned char text_snake[19] = {
+const unsigned char text_snake[19] PROGMEM = {
     0b00001011, 0b00001011, 0b00001111, 0b00000000, 0b00001111,
     0b00000001, 0b00001111, 0b00000000, 0b00001111, 0b00000011,
     0b00001111, 0b00000000, 0b00001111, 0b00000110, 0b00001001,
     0b00000000, 0b00001111, 0b00001011, 0b00001011};
-const unsigned char text_ghero[40] = {
+const unsigned char text_ghero[40] PROGMEM = {
     0b00001111, 0b00001101, 0b00001101, 0b00000000, 0b00001111, 0b00001000,
     0b00001111, 0b00000000, 0b00001001, 0b00001111, 0b00001001, 0b00000000,
     0b00000001, 0b00001111, 0b00000001, 0b00000000, 0b00001111, 0b00000011,
@@ -1026,8 +1040,9 @@ void draw_text(const unsigned char text[], unsigned char size,
             char index = (menu_shift + i - 7);
 
             if (index < size && index >= 0) {
-                outputLED[i][j] = (text[(unsigned char)index] &
-                                   (1 << (3 - j))) != 0;  // [j];
+                outputLED[i][j] =
+                    (pgm_read_byte(&(text[(unsigned char)index])) &
+                     (1 << (3 - j))) != 0;  // [j];
             } else {
                 outputLED[i][j] = 0;
             }
