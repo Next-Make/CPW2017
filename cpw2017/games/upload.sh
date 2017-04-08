@@ -15,3 +15,6 @@ avr-objcopy -j .text -j .data -O ihex $name.elf $name.hex || exit 1
 
 # Program the compiled code onto board
 avrdude -p t88 -c usbtiny -P USB -B 1 -v -U flash:w:$name.hex -U lfuse:w:0xEE:m
+
+# Display RAM consumption
+avr-size -C --mcu=attiny88 $name.elf
