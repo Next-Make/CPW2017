@@ -85,8 +85,8 @@ def main():
     KEYS = [0, 0, 0, 0, 0, 0, 0, 0]
 
     while True:
-        key_test()
-        # move_character()
+        # key_test()
+        move_character()
         # your_program()
 
         # Needed for simulation to run.

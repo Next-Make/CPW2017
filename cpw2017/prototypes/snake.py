@@ -366,7 +366,7 @@ def update_game():
     if GAME_STATE != UPDATE:
         return
 
-    if EXTEND_DELAY > 75000:
+    if EXTEND_DELAY > 150000:#75000:
         EXTEND_DELAY = 0
         update_snake()
     else:
