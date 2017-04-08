@@ -918,21 +918,198 @@ void memory() {
 }
 
 /**
- * Main frogger game!
+ * Frogger game variables.
+ */
+// Current frog position
+unsigned char frogX = 3;
+// frogY is always 1, we scroll the screen instead of moving the frog
+
+// Counter used for blinking the frog
+unsigned char blink = 0;
+
+// Counter used for moving the frog and trucks
+unsigned char timeout = 0;
+
+// The trucks in the level are in froggerLevel:
+// Within each row, each truck has the same speed and same length.
+// The speed of a row is equal to the number of spaces between trucks.
+// Within each sublist, the first element is the length of the trucks in that
+// row (2-4).
+// The second element is the velocity (-2, -1, 1, or 2) with positive velocity
+// meaning moving to the right.
+// The third element is the truck index, which indicates the portion of the
+// first truck in a row that is still off the screen.
+// A sublist with all 0s represents an empty row.
+char froggerLevel[37][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {2, -2, 0}, {3, 1, 0}, {2, -1, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 2, 0}, {4, -1, 0}, {1, 2, 0},{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {2, -2, 0}, {3, 1, 0}, {2, -1, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 2, 0}, {1, -2, 0}, {1, 2, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {2, -2, 0}, {3, 1, 0}, {2, -1, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 2, 0}, {4, -2, 0}, {1, 2, 0}, {0, 0, 0}};
+
+// Counter used for moving trucks
+unsigned int truckCounter = 0;
+
+// Variable to make speed 1 trucks move on every other cycle
+unsigned char truckPhase = 0;
+
+// The beginning of the window of rows currently displayed on the screen
+unsigned char rowIndex = 0;
+
+/**
+ * Resets variables and returns to the menu.
+ */
+void froggerEndGame() {
+    // Return to the menu
+    menu_run = 0;
+    rowIndex = 0;
+    frogX = 3;
+}
+
+/**
+ * Check if the frog has collided with a truck.
+ */
+void froggerCheckCollision() {
+    unsigned char currentRow = rowIndex + 1;
+    if (currentRow < 37) {
+        unsigned char index = froggerLevel[currentRow][2];
+        if (froggerLevel[currentRow][1] > 0) {
+            // Moving to the right
+            for (unsigned char col = 0; col < 7; col++) {
+                if (index >= froggerLevel[currentRow][1]) {
+                    // A truck exists here
+                    if (col == frogX) {
+                        // Collision!
+                        froggerEndGame();
+                    }
+                }
+                index = (index + 1) % (froggerLevel[currentRow][0] + froggerLevel[currentRow][1]);
+            }
+        } else if (froggerLevel[currentRow][1] < 0) {
+            // Moving to the left
+            for (unsigned char col = 0; col < 7; col++) {
+                if (index < froggerLevel[currentRow][1]) {
+                    // A truck exists here
+                    if (col == frogX) {
+                        // Collision!
+                        froggerEndGame();
+                    }
+                }
+                index = (index - 1) % (froggerLevel[currentRow][0] - froggerLevel[currentRow][1]);
+            }
+        }
+    }
+}
+
+/**
+ * Move the frog on the screen.
+ * The screen scrolls up and down with the frog to show more of the froggerLevel.
+ */
+void updateFrog() {
+    // Up
+    if (buttons[1] > 3) {
+        rowIndex += 1;
+    }
+    // Down
+    if (buttons[7] > 3 && rowIndex > 0) {
+        rowIndex -= 1;
+    }
+    // Left
+    if (buttons[4] > 3 && frogX > 0) {
+        frogX -= 1;
+    }
+    // Right
+    if (buttons[5] > 3 && frogX < 6) {
+        frogX += 1;
+    }
+    timeout = 0;
+
+    froggerCheckCollision();
+    if (rowIndex == 37) {
+        // Victory!
+        froggerEndGame();
+    }
+}
+
+/**
+ * Draw the frog on the screen.
+ */
+void drawFrog() {
+    if (blink <= 70) {
+        outputLED[frogX][1] = 2;
+    } else if (blink <= 140) {
+        outputLED[frogX][1] = 0;
+    } else {
+        blink = 0;
+    }
+}
+
+/**
+ * Update the position of the trucks on the screen.
+ */
+void updateTrucks() {
+    truckCounter += 1;
+
+    if (truckCounter >= 400) {
+        truckCounter = 0;
+        truckPhase = (truckPhase + 1) % 2;
+
+        for (unsigned char row = 0; row < 37; row++) {
+            // Update truck indices
+            if (froggerLevel[row][1] == 2 || ((froggerLevel[row][1] == 1) && truckPhase)) {
+                froggerLevel[row][2] = (froggerLevel[row][2] - 1) % (froggerLevel[row][0] + froggerLevel[row][1]);
+            } else if (froggerLevel[row][1] == -2 || ((froggerLevel[row][1] == -1) && truckPhase)) {
+                froggerLevel[row][2] = (froggerLevel[row][2] - 1) % (froggerLevel[row][0] - froggerLevel[row][1]);
+            }
+        }
+
+        froggerCheckCollision();
+    }
+}
+
+/**
+ * Draw the trucks on the screen.
+ */
+void drawTrucks() {
+    unsigned char maxRow = rowIndex + 5;
+    if (maxRow > 37) {
+        maxRow = 37;
+    }
+    // Draw the current trucks
+    for (unsigned char row = rowIndex; row < maxRow; row++) {
+        unsigned char index = froggerLevel[row][2];
+        if (froggerLevel[row][1] > 0) {
+            // Trucks moving to the right
+            for (unsigned char col = 0; col < 7; col++) {
+                if (index >= froggerLevel[row][1]) {
+                    // Drawing a truck
+                    outputLED[col][row - rowIndex] = 2;
+                }
+                index = (index + 1) % (froggerLevel[row][0] + froggerLevel[row][1]);
+            }
+        } else if (froggerLevel[row][1] < 0) {
+            // Trucks moving to the left
+            for (unsigned char col = 0; col < 7; col++) {
+                if (index < -froggerLevel[row][1]) {
+                    // Drawing a truck
+                    outputLED[col][row - rowIndex] = 2;
+                }
+                index = (index - 1) % (froggerLevel[row][0] - froggerLevel[row][1]);
+            }
+        }
+    }
+}
+
+/**
+ * The main Frogger game!
  */
 void frogger() {
-    shared_delay += 1;
-    if (shared_delay > 1000) {
-        clear_LEDs();
+    clear_LEDs();
 
-        shared_delay = 0;
-
-        if (buttons[1] | buttons[4] | buttons[7]) {
-            menu_run = 0;
-
-            // Reset variables
-            shared_delay = 0;
-        }
+    drawFrog();
+    drawTrucks();
+    if (timeout >= 75) {
+        updateFrog();
+        updateTrucks();
+    } else {
+        timeout += 1;
+        blink += 1;
+        truckCounter += 1;
     }
 }
 
