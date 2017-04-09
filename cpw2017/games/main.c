@@ -1402,24 +1402,6 @@ void frogger() {
 }
 
 /**
- * Main snake game!
- */
-void snake() {
-    shared_delay += 1;
-    if (shared_delay > 1000) {
-        clear_LEDs();
-
-        shared_delay = 0;
-
-        if (buttons[1] | buttons[4] | buttons[7]) {
-            menu_run = 0;
-            // reset variables
-            shared_delay = 0;
-        }
-    }
-}
-
-/**
  * Main guitar hero game!
  */
 void ghero() {
@@ -1469,11 +1451,6 @@ const unsigned char text_frogger[27] PROGMEM = {
     0b00001111, 0b00001101, 0b00001101, 0b00000000, 0b00001111, 0b00001101,
     0b00001101, 0b00000000, 0b00001111, 0b00001011, 0b00001011, 0b00000000,
     0b00001111, 0b00000111, 0b00001011};
-const unsigned char text_snake[19] PROGMEM = {
-    0b00001011, 0b00001011, 0b00001111, 0b00000000, 0b00001111,
-    0b00000001, 0b00001111, 0b00000000, 0b00001111, 0b00000011,
-    0b00001111, 0b00000000, 0b00001111, 0b00000110, 0b00001001,
-    0b00000000, 0b00001111, 0b00001011, 0b00001011};
 const unsigned char text_ghero[40] PROGMEM = {
     0b00001111, 0b00001101, 0b00001101, 0b00000000, 0b00001111, 0b00001000,
     0b00001111, 0b00000000, 0b00001001, 0b00001111, 0b00001001, 0b00000000,
@@ -1531,8 +1508,6 @@ void menu() {
         } else if (menu_selection == 4) {
             return frogger();
         } else if (menu_selection == 5) {
-            return snake();
-        } else if (menu_selection == 6) {
             return ghero();
         }
     }
@@ -1559,10 +1534,7 @@ void menu() {
             // 4 is Frogger
             draw_text(text_frogger, 27, 42);
         } else if (menu_selection == 5) {
-            // 5 is Snake
-            draw_text(text_snake, 19, 35);
-        } else if (menu_selection == 6) {
-            // 6 is Guitar Hero
+            // 5 is Guitar Hero
             draw_text(text_ghero, 40, 50);
         }
     }
@@ -1574,7 +1546,7 @@ void menu() {
         if (buttons[3] > 3) {
             menu_shift = 0;
             menu_selection += 1;
-            menu_selection %= 7;
+            menu_selection %= 6;
         }
 
         // Left button
@@ -1582,7 +1554,7 @@ void menu() {
             menu_shift = 0;
 
             if (menu_selection == 0) {
-                menu_selection = 6;
+                menu_selection = 5;
             } else {
                 menu_selection -= 1;
             }
