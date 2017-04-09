@@ -23,6 +23,7 @@ char correctLED = 0;
 // 1 = dim
 // 2 = bright
 unsigned char outputLED[7][5];
+unsigned char pixels[7][5];
 char buttons[8];
 
 unsigned char row = 0;
@@ -303,8 +304,6 @@ unsigned char doubleNote = 0;
  */
 void paused() {
     // Draw the scores on the screen
-    clearLeds();
-
     unsigned char row, col;
     for (row = 0; row < winsLeft; row++) {
         for (col = 0; col < 3; col++) {
@@ -335,12 +334,14 @@ void paused() {
  */
 void generateNew() {
     outputLED[3][song[songIndex]] = 2;
+    pixels[3][song[songIndex]] = 2;
     songIndex = (songIndex + 1) % 20;
 
     doubleNote = (doubleNote + 1) % 7;
     if (doubleNote == 0) {
         // Create a double note
         outputLED[3][song[songIndex]] = 2;
+        pixels[3][song[songIndex]] = 2;
         songIndex = (songIndex + 1) % 20;
     }
 }
@@ -380,15 +381,20 @@ void playGame() {
         // Move notes
         for (unsigned char col = 0; col < 7; col++) {
             for (unsigned char row = 1; row < 4; row++) {
-                if ((outputLED[col][row] % 2) == 1) {
+                if ((pixels[col][row] % 2) == 1) {
                     outputLED[col][row] = 0;
+                    pixels[col][row] = 0;
                     if (col == 3) {  // Propagate both directions
                         outputLED[col + 1][row] = 2;
                         outputLED[col - 1][row] = 2;
+                        pixels[col + 1][row] = 2;
+                        pixels[col - 1][row] = 2;
                     } else if (col > 3 && col < 6) {
                         outputLED[col + 1][row] = 2;
+                        pixels[col + 1][row] = 2;
                     } else if (col < 3 && col > 0) {
                         outputLED[col - 1][row] = 2;
+                        pixels[col - 1][row] = 2;
                     } else if (col == 0) {
                         winsRight += 1;
                         resetGame();
@@ -409,12 +415,14 @@ void playGame() {
 
         // Create and draw a new note in the song.
         outputLED[3][song[songIndex]] = 2;
+        pixels[3][song[songIndex]] = 2;
         songIndex = (songIndex + 1) % 20;
 
         doubleNote = (doubleNote + 1) % 7;
         if (doubleNote == 0) {
             // Create a double note
             outputLED[3][song[songIndex]] = 2;
+            pixels[3][song[songIndex]] = 2;
             songIndex = (songIndex + 1) % 20;
         }
         transitionOccurred = 1;
@@ -428,8 +436,9 @@ void playGame() {
 
     // Did left press the correct button at the correct time?
     if (leftPress) {
-        if (outputLED[0][leftPress] == 2) {
+        if (pixels[0][leftPress] == 2) {
             outputLED[0][leftPress] = 0;
+            pixels[0][leftPress] = 0;
         } else if (transitionOccurred) {  // Mispress
             winsRight += 1;
             resetGame();
@@ -438,8 +447,9 @@ void playGame() {
 
     // Did right press the correct button at the correct time?
     if (rightPress) {
-        if (outputLED[6][rightPress] == 2) {
+        if (pixels[6][rightPress] == 2) {
             outputLED[6][rightPress] = 0;
+            pixels[6][rightPress] = 0;
         } else if (transitionOccurred) {  // Mispress
             winsLeft += 1;
             resetGame();
@@ -451,9 +461,10 @@ void playGame() {
  * The main Guitar Hero game!
  */
 void ghero() {
-    clearLeds();
+    // clearLeds();
 
     if (gameState == 0) {
+        clearLeds();
         paused();
     } else {
         playGame();
