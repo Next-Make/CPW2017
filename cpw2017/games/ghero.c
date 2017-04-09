@@ -282,7 +282,7 @@ unsigned char winsRight = 0;
 unsigned char keys[8] = {3, 3, 2, 2, 2, 2, 1, 1};
 
 // Whether a change (a note move or a player keypress) has occurred
-unsigned char transitionOccurred = 0;
+unsigned char transitionOccurredLeft = 0, transitionOccurredRight = 0;
 
 // Counter used for moving song notes
 unsigned int transitionDelay = 0;
@@ -316,34 +316,23 @@ void paused() {
         }
     }
 
-    for (unsigned char i = 0; i < 8; i++) {
-        if (buttons[i] > 3) {
-            gameState = 1;
-            clearLeds();
-            transitionOccurred = 0;
-            if (winsLeft >= 5 || winsRight >= 5) {
-                winsLeft = 0;
-                winsRight = 0;
-            }
+    for (row = 0; row < 5; row++) {
+        for (col = 0; col < 7; col++) {
+            pixels[col][row] = 0;
         }
     }
-}
 
-/**
- * Create and draw a new note in the song.
- */
-void generateNew() {
-    outputLED[3][song[songIndex]] = 2;
-    pixels[3][song[songIndex]] = 2;
-    songIndex = (songIndex + 1) % 20;
+   if (buttons[3] > 3 || buttons[4] > 3) {
+       gameState = 1;
+       clearLeds();
+       if (winsLeft >= 5 || winsRight >= 5) {
+           winsLeft = 0;
+           winsRight = 0;
+       }
+   }
 
-    doubleNote = (doubleNote + 1) % 7;
-    if (doubleNote == 0) {
-        // Create a double note
-        outputLED[3][song[songIndex]] = 2;
-        pixels[3][song[songIndex]] = 2;
-        songIndex = (songIndex + 1) % 20;
-    }
+    transitionOccurredLeft = 0;
+    transitionOccurredRight = 0;
 }
 
 /**
@@ -359,42 +348,37 @@ void resetGame() {
  * Play the Guitar Hero game.
  */
 void playGame() {
-    unsigned char leftPress, rightPress;
+    unsigned char leftPress = 0, rightPress = 0;
 
     if (buttons[0] > 3)
         leftPress = 3;
     if (buttons[1] > 3)
         rightPress = 3;
-    if (buttons[2] > 3 || buttons[3] > 3)
+    if (buttons[2] > 3)
         leftPress = 2;
-    if (buttons[4] > 3 || buttons[5] > 3)
+    if (buttons[5] > 3)
         rightPress = 2;
     if (buttons[6] > 3)
         leftPress = 1;
     if (buttons[7] > 3)
         rightPress = 1;
-
+    
     // Move dots
-    if (transitionDelay > 10000) {
+    if (transitionDelay > 1000) {
         transitionDelay = 0;
-        
+        unsigned char row, col;
         // Move notes
-        for (unsigned char col = 0; col < 7; col++) {
-            for (unsigned char row = 1; row < 4; row++) {
+        for (col = 0; col < 7; col++) {
+            for (row = 1; row < 4; row++) {
                 if ((pixels[col][row] % 2) == 1) {
-                    outputLED[col][row] = 0;
-                    pixels[col][row] = 0;
+                    pixels[col][row] -= 1;
                     if (col == 3) {  // Propagate both directions
-                        outputLED[col + 1][row] = 2;
-                        outputLED[col - 1][row] = 2;
-                        pixels[col + 1][row] = 2;
-                        pixels[col - 1][row] = 2;
+                        pixels[col + 1][row] += 2;
+                        pixels[col - 1][row] += 2;
                     } else if (col > 3 && col < 6) {
-                        outputLED[col + 1][row] = 2;
-                        pixels[col + 1][row] = 2;
+                        pixels[col + 1][row] += 2;
                     } else if (col < 3 && col > 0) {
-                        outputLED[col - 1][row] = 2;
-                        pixels[col - 1][row] = 2;
+                        pixels[col - 1][row] += 2;
                     } else if (col == 0) {
                         winsRight += 1;
                         resetGame();
@@ -405,27 +389,32 @@ void playGame() {
                 }
             }
         }
-        // for (col = 0; col < 7; col++) {
-        //     for (row = 1; row < 4; row++) {
-        //         if (outputLED[col][row] > 0) {
-        //             outputLED[col][row] = 2;
-        //         }
-        //     }
-        // }
+        for (col = 0; col < 7; col++) {
+            for (row = 1; row < 4; row++) {
+                if (pixels[col][row] > 0) {
+                    pixels[col][row] = 1;
+                    outputLED[col][row] = 2;
+                }
+                else {
+                    outputLED[col][row] = 0;
+                }
+            }
+        }
 
         // Create and draw a new note in the song.
         outputLED[3][song[songIndex]] = 2;
-        pixels[3][song[songIndex]] = 2;
+        pixels[3][song[songIndex]] = 1;
         songIndex = (songIndex + 1) % 20;
 
-        doubleNote = (doubleNote + 1) % 7;
-        if (doubleNote == 0) {
-            // Create a double note
-            outputLED[3][song[songIndex]] = 2;
-            pixels[3][song[songIndex]] = 2;
-            songIndex = (songIndex + 1) % 20;
-        }
-        transitionOccurred = 1;
+//        doubleNote = (doubleNote + 1) % 7;
+//        if (doubleNote == 0) {
+//            // Create a double note
+//            outputLED[3][song[songIndex]] = 2;
+//            pixels[3][song[songIndex]] = 1;
+//            songIndex = (songIndex + 1) % 20;
+//        }
+        transitionOccurredLeft = 1;
+        transitionOccurredRight = 1;
         delayThreshold -= 500;
         if (delayThreshold < 5000) {
             delayThreshold = 5000;
@@ -436,10 +425,11 @@ void playGame() {
 
     // Did left press the correct button at the correct time?
     if (leftPress) {
-        if (pixels[0][leftPress] == 2) {
+        if (pixels[0][leftPress] == 1) {
             outputLED[0][leftPress] = 0;
             pixels[0][leftPress] = 0;
-        } else if (transitionOccurred) {  // Mispress
+            transitionOccurredLeft = 0;
+        } else if (transitionOccurredLeft) {  // Mispress
             winsRight += 1;
             resetGame();
         }
@@ -447,10 +437,11 @@ void playGame() {
 
     // Did right press the correct button at the correct time?
     if (rightPress) {
-        if (pixels[6][rightPress] == 2) {
+        if (pixels[6][rightPress] == 1) {
             outputLED[6][rightPress] = 0;
             pixels[6][rightPress] = 0;
-        } else if (transitionOccurred) {  // Mispress
+            transitionOccurredRight = 0;
+        } else if (transitionOccurredRight) {  // Mispress
             winsLeft += 1;
             resetGame();
         }
@@ -461,7 +452,7 @@ void playGame() {
  * The main Guitar Hero game!
  */
 void ghero() {
-    // clearLeds();
+//    clearLeds();
 
     if (gameState == 0) {
         clearLeds();

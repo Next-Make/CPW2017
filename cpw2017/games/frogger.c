@@ -331,7 +331,7 @@ void froggerCheckCollision() {
         } else if (froggerLevel[currentRow][1] < 0) {
             // Moving to the left
             for (unsigned char col = 0; col < 7; col++) {
-                if (index < froggerLevel[currentRow][1]) {
+                if (index < -froggerLevel[currentRow][1]) {
                     // A truck exists here
                     if (col == frogX) {
                         // Collision!

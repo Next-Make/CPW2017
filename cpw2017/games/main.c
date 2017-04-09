@@ -1271,7 +1271,7 @@ void froggerCheckCollision() {
         } else if (froggerLevel[currentRow][1] < 0) {
             // Moving to the left
             for (unsigned char col = 0; col < 7; col++) {
-                if (index < froggerLevel[currentRow][1]) {
+                if (index < -froggerLevel[currentRow][1]) {
                     // A truck exists here
                     if (col == frogX) {
                         // Collision!
@@ -1333,7 +1333,7 @@ void drawFrog() {
 void updateTrucks() {
     truckCounter += 1;
 
-    if (truckCounter >= 400) {
+    if (truckCounter >= 500) {
         truckCounter = 0;
         truckPhase = (truckPhase + 1) % 2;
 
@@ -1391,7 +1391,7 @@ void frogger() {
 
     drawFrog();
     drawTrucks();
-    if (timeout >= 75) {
+    if (timeout >= 175) {
         updateFrog();
         updateTrucks();
     } else {
@@ -1402,20 +1402,187 @@ void frogger() {
 }
 
 /**
- * Main guitar hero game!
+ * Guitar Hero game variables.
+ */
+// The current state of the game; 0 = wait, 1 = play
+unsigned char gameState = 0;
+
+// The scores of the players
+unsigned char winsLeft = 0;
+unsigned char winsRight = 0;
+
+// Mappings from keys to the notes onscreen
+unsigned char keys[8] = {3, 3, 2, 2, 2, 2, 1, 1};
+
+// Whether a change (a note move or a player keypress) has occurred
+unsigned char transitionOccurredLeft = 0, transitionOccurredRight = 0;
+
+// Counter used for moving song notes
+unsigned int transitionDelay = 0;
+
+// Song notes; 1 is bottom, 2 is mid, 3 is top
+unsigned char song[20] = {1, 3, 2, 3, 1, 3, 1, 2, 2, 3, 1, 3, 2, 1, 1, 3, 2, 3, 2, 2};
+
+// Locations of song notes
+unsigned char pixels[7][5];
+
+// Progress through the song; wraps around
+unsigned char songIndex = 0;
+
+/**
+ * Wait for the user to decide which hand to use before starting.
+ */
+void paused() {
+    // Draw the scores on the screen
+    unsigned char row, col;
+    for (row = 0; row < winsLeft; row++) {
+        for (col = 0; col < 3; col++) {
+            outputLED[col][row] = 2;
+        }
+    }
+    for (row = 0; row < winsRight; row++) {
+        for (col = 4; col < 7; col++) {
+            outputLED[col][row] = 2;
+        }
+    }
+
+    for (row = 0; row < 5; row++) {
+        for (col = 0; col < 7; col++) {
+            pixels[col][row] = 0;
+        }
+    }
+
+   if (buttons[4] > 3) {
+       gameState = 1;
+       clear_LEDs();
+       if (winsLeft >= 5 || winsRight >= 5) {
+           winsLeft = 0;
+           winsRight = 0;
+       }
+   }
+
+    transitionOccurredLeft = 0;
+    transitionOccurredRight = 0;
+}
+
+/**
+ * Reset the game state for a fresh game.
+ */
+void resetGame() {
+    gameState = 0;
+    for (unsigned int i = 0; i < 10000; i++) {}
+    clear_LEDs();
+}
+
+/**
+ * Play the Guitar Hero game.
+ */
+void playGame() {
+    unsigned char leftPress = 0, rightPress = 0;
+
+    if (buttons[3] > 3) {
+        menu_run = 0;
+        gameState = 0;
+        winsLeft = 0;
+        winsRight = 0;
+    }
+
+    if (buttons[0] > 3)
+        leftPress = 3;
+    if (buttons[1] > 3)
+        rightPress = 3;
+    if (buttons[2] > 3)
+        leftPress = 2;
+    if (buttons[5] > 3)
+        rightPress = 2;
+    if (buttons[6] > 3)
+        leftPress = 1;
+    if (buttons[7] > 3)
+        rightPress = 1;
+    
+    // Move dots
+    if (transitionDelay > 3000) {
+        transitionDelay = 0;
+        unsigned char row, col;
+        // Move notes
+        for (col = 0; col < 7; col++) {
+            for (row = 1; row < 4; row++) {
+                if ((pixels[col][row] % 2) == 1) {
+                    pixels[col][row] -= 1;
+                    if (col == 3) {  // Propagate both directions
+                        pixels[col + 1][row] += 2;
+                        pixels[col - 1][row] += 2;
+                    } else if (col > 3 && col < 6) {
+                        pixels[col + 1][row] += 2;
+                    } else if (col < 3 && col > 0) {
+                        pixels[col - 1][row] += 2;
+                    } else if (col == 0) {
+                        winsRight += 1;
+                        resetGame();
+                    } else {
+                        winsLeft += 1;
+                        resetGame();
+                    }
+                }
+            }
+        }
+        for (col = 0; col < 7; col++) {
+            for (row = 1; row < 4; row++) {
+                if (pixels[col][row] > 0) {
+                    pixels[col][row] = 1;
+                    outputLED[col][row] = 2;
+                }
+                else {
+                    outputLED[col][row] = 0;
+                }
+            }
+        }
+
+        // Create and draw a new note in the song.
+        outputLED[3][song[songIndex]] = 2;
+        pixels[3][song[songIndex]] = 1;
+        songIndex = (songIndex + 1) % 20;
+
+        transitionOccurredLeft = 1;
+        transitionOccurredRight = 1;
+    } else {
+        transitionDelay += 1;
+    }
+
+    // Did left press the correct button at the correct time?
+    if (leftPress) {
+        if (pixels[0][leftPress] == 1) {
+            outputLED[0][leftPress] = 0;
+            pixels[0][leftPress] = 0;
+            transitionOccurredLeft = 0;
+        } else if (transitionOccurredLeft) {  // Mispress
+            winsRight += 1;
+            resetGame();
+        }
+    }
+
+    // Did right press the correct button at the correct time?
+    if (rightPress) {
+        if (pixels[6][rightPress] == 1) {
+            outputLED[6][rightPress] = 0;
+            pixels[6][rightPress] = 0;
+            transitionOccurredRight = 0;
+        } else if (transitionOccurredRight) {  // Mispress
+            winsLeft += 1;
+            resetGame();
+        }
+    }
+}
+
+/**
+ * The main Guitar Hero game!
  */
 void ghero() {
-    shared_delay += 1;
-    if (shared_delay > 1000) {
+    if (gameState == 0) {
         clear_LEDs();
-
-        shared_delay = 0;
-
-        if (buttons[1] | buttons[4] | buttons[7]) {
-            menu_run = 0;
-            // reset variables
-            shared_delay = 0;
-        }
+        paused();
+    } else {
+        playGame();
     }
 }
 
